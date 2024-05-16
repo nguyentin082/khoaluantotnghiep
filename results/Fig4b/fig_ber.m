@@ -81,3 +81,7 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
     title('BER vs. SNR for different values of B');
     grid on;
 end
+
+
+
+% TESTING
