@@ -2,3 +2,11 @@ H_test.mat
 H_train.mat
 HDL_ori_reconst.mat
 HDL_test.mat
+
+HDL_ori_reconst-BTot512-CR16.mat
+HDL_ori_reconst-BTot768-CR16.mat
+HDL_ori_reconst-BTot1024-CR16.mat
+HDL_ori_reconst-BTot1280-CR16.mat
+HDL_ori_reconst-BTot1536-CR16.mat
+HDL_ori_reconst-BTot1792-CR16.mat
+HDL_ori_reconst-BTot2048-CR16.mat
