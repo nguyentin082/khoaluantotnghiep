@@ -1,7 +1,7 @@
 clear; clc;
 
 % Define SNR range and B values
-SNR_dB_range = -30:5:0;  % Phạm vi SNR theo dB
+SNR_dB_range = -30:5:40;  % Phạm vi SNR theo dB
 B_values = [512, 768, 1024, 1280, 1536, 1792, 2048];  % Các giá trị của B
 
 % Load the ground truth channel matrix
@@ -30,11 +30,11 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
     % H_reconstructed: cell array chứa các ma trận kênh được tái tạo từ thuật toán học máy tương ứng với mỗi B
 
     % Định nghĩa các tham số
-    numBits = size(H_true, 3);  % Số lượng bit được truyền
+    numSamples = size(H_true, 3);  % Số lượng bit được truyền
     ber_vs_snr = zeros(length(SNR_dB_range), length(B_values) + 1);
     
     % Tạo dữ liệu BPSK
-    bits = randi([0 1], 64, 160, numBits);  % Generate bits with dimensions 64x160xnumBits
+    bits = randi([0 1], 64, 160, numSamples);  % Generate bits with dimensions 64x160xnumSamples
     symbols = 2*bits - 1;  % Biểu diễn BPSK: 0 -> -1, 1 -> 1
 
     % Duyệt qua các giá trị của B
@@ -48,26 +48,50 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
 
             % Tính toán BER cho mỗi SNR và B
             noise_var = 1 / SNR_linear;
-            noise = sqrt(noise_var/2) * (randn(64, 160, numBits) + 1i*randn(64, 160, numBits));
+            noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Generate noise here
+            
             received_with_csi = zeros(size(symbols));
-            received_with_true_csi = zeros(size(symbols));
+            transfered_with_csi = zeros(size(symbols));
             
             % Áp dụng CSI vào tín hiệu nhận được
-            for i = 1:numBits
-                received_with_csi(:,:,i) = symbols(:,:,i) .* H_reconstructed_B(:,:,i) + noise(:,:,i);
-                received_with_true_csi(:,:,i) = symbols(:,:,i) .* H_true(:,:,i) + noise(:,:,i);
+            for i = 1:numSamples
+                received_with_csi(:,:,i) = symbols(:,:,i) .* H_true(:,:,i) + noise(:,:,i);
+                transfered_with_csi(:,:,i) = received_with_csi(:,:,i) ./ H_reconstructed_B(:,:,i);
             end
             
             % Giải điều chế BPSK
-            detected_bits = real(received_with_csi) > 0; %các giá trị lớn hơn 0 sẽ được gán là 1 (tương ứng với bit 1 ban đầu), và các giá trị nhỏ hơn hoặc bằng 0 sẽ được gán là 0 (tương ứng với bit 0 ban đầu).
-            detected_bits_true = real(received_with_true_csi) > 0;
+            detected_bits = real(transfered_with_csi) > 0; % Các giá trị lớn hơn 0 sẽ được gán là 1 (tương ứng với bit 1 ban đầu), và các giá trị nhỏ hơn hoặc bằng 0 sẽ được gán là 0 (tương ứng với bit 0 ban đầu).
             
             % Tính toán BER
-            ber = mean(detected_bits(:) ~= bits(:)); % So sánh các bit giải điều chế detected_bits với các bit gốc bits. Và Tính tỷ lệ phần trăm các bit khác nhau (bit lỗi).
-            ber_true = mean(detected_bits_true(:) ~= bits(:));
+            ber = mean(detected_bits(:) ~= bits(:)); % So sánh các bit giải điều chế detected_bits với các bit gốc bits. Và tính tỷ lệ phần trăm các bit khác nhau (bit lỗi).
             ber_vs_snr(snr_idx, b_idx) = ber;
-            ber_vs_snr(snr_idx, end) = ber_true;  % BER với CSI hoàn hảo
+
+            % Display BER
+            fprintf('BER for B = %d, SNR = %d dB: %f\n', B_values(b_idx), SNR_dB, ber);
         end
+    end
+    
+    % Tính BER cho CSI hoàn hảo
+    for snr_idx = 1:length(SNR_dB_range)
+        SNR_dB = SNR_dB_range(snr_idx);
+        SNR_linear = 10^(SNR_dB/10);
+        noise_var = 1 / SNR_linear;
+        noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Use the same noise
+
+        received_with_csi = zeros(size(symbols));
+        transfered_with_csi = zeros(size(symbols));
+        
+        for i = 1:numSamples
+            received_with_csi(:,:,i) = symbols(:,:,i) .* H_true(:,:,i) + noise(:,:,i);
+            transfered_with_csi(:,:,i) = received_with_csi(:,:,i) ./ H_true(:,:,i);
+        end
+        
+        detected_bits = real(transfered_with_csi) > 0;
+        ber_true = mean(detected_bits(:) ~= bits(:));
+        ber_vs_snr(snr_idx, end) = ber_true;  % BER với CSI hoàn hảo
+
+        % Display BER for perfect CSI
+        fprintf('BER for Perfect CSI, SNR = %d dB: %f\n', SNR_dB, ber_true);
     end
     
     % Vẽ biểu đồ
@@ -81,7 +105,3 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
     title('BER vs. SNR for different values of B');
     grid on;
 end
-
-
-
-% TESTING

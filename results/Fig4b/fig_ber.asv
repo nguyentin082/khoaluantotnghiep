@@ -1,7 +1,7 @@
 clear; clc;
 
 % Define SNR range and B values
-SNR_dB_range = -30:5:40;  % Phạm vi SNR theo dB
+SNR_dB_range = -30:5:10;  % Phạm vi SNR theo dB
 B_values = [512, 768, 1024, 1280, 1536, 1792, 2048];  % Các giá trị của B
 
 % Load the ground truth channel matrix
@@ -30,11 +30,11 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
     % H_reconstructed: cell array chứa các ma trận kênh được tái tạo từ thuật toán học máy tương ứng với mỗi B
 
     % Định nghĩa các tham số
-    numSamples = size(H_true, 3);  % Số lượng bit được truyền
+    numBits = size(H_true, 3);  % Số lượng bit được truyền
     ber_vs_snr = zeros(length(SNR_dB_range), length(B_values) + 1);
     
     % Tạo dữ liệu BPSK
-    bits = randi([0 1], 64, 160, numSamples);  % Generate bits with dimensions 64x160xnumSamples
+    bits = randi([0 1], 64, 160, numBits);  % Generate bits with dimensions 64x160xnumBits
     symbols = 2*bits - 1;  % Biểu diễn BPSK: 0 -> -1, 1 -> 1
 
     % Duyệt qua các giá trị của B
@@ -48,13 +48,13 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
 
             % Tính toán BER cho mỗi SNR và B
             noise_var = 1 / SNR_linear;
-            noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Generate noise here
+            noise = sqrt(noise_var/2) * (randn(64, 160, numBits) + 1i*randn(64, 160, numBits));  % Generate noise here
             
             received_with_csi = zeros(size(symbols));
             transfered_with_csi = zeros(size(symbols));
             
             % Áp dụng CSI vào tín hiệu nhận được
-            for i = 1:numSamples
+            for i = 1:numBits
                 received_with_csi(:,:,i) = symbols(:,:,i) .* H_true(:,:,i) + noise(:,:,i);
                 transfered_with_csi(:,:,i) = received_with_csi(:,:,i) ./ H_reconstructed_B(:,:,i);
             end
@@ -76,12 +76,12 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
         SNR_dB = SNR_dB_range(snr_idx);
         SNR_linear = 10^(SNR_dB/10);
         noise_var = 1 / SNR_linear;
-        noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Use the same noise
+        noise = sqrt(noise_var/2) * (randn(64, 160, numBits) + 1i*randn(64, 160, numBits));  % Use the same noise
 
         received_with_csi = zeros(size(symbols));
         transfered_with_csi = zeros(size(symbols));
         
-        for i = 1:numSamples
+        for i = 1:numBits
             received_with_csi(:,:,i) = symbols(:,:,i) .* H_true(:,:,i) + noise(:,:,i);
             transfered_with_csi(:,:,i) = received_with_csi(:,:,i) ./ H_true(:,:,i);
         end
