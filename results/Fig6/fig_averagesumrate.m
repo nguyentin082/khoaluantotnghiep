@@ -1,121 +1,80 @@
-clear; clc;
+clc; clear;
 
-% Define SNR range and B values
-SNR_dB_range = -30:5:10;  % Define the range of SNR values in dB
-B_values = [512, 1024, 1536, 2048];  % Define the values of B
+% Load data
+HDL_test = load('HDL_test.mat').HDL_test;
+HDL_ori_reconst = load('HDL_ori_reconst-BTot512-CR16.mat').HDL_ori_reconst;
 
-% Load the ground truth channel matrix
-H_true = load('HDL_test.mat').HDL_test; % Replace with the correct file loading
+P_total = 1; % Total transmit power
+num_tests = size(HDL_test, 3);
+sum_rate = zeros(num_tests, 1);
 
-% Initialize cell array for reconstructed channel matrices
-H_reconstructed = cell(1, length(B_values));
-
-% Load the reconstructed channel matrices for each B value
-H_reconstructed{1} = load('HDL_ori_reconst-BTot512-CR16.mat').HDL_ori_reconst; % Replace with the correct file loading
-H_reconstructed{2} = load('HDL_ori_reconst-BTot1024-CR16.mat').HDL_ori_reconst; % Replace with the correct file loading
-H_reconstructed{3} = load('HDL_ori_reconst-BTot1536-CR16.mat').HDL_ori_reconst; % Replace with the correct file loading
-H_reconstructed{4} = load('HDL_ori_reconst-BTot2048-CR16.mat').HDL_ori_reconst; % Replace with the correct file loading
-
-% Calculate and plot sum rate vs. SNR for different values of B
-sum_rate_vs_snr = plot_sum_rate_vs_snr(SNR_dB_range, B_values, H_true, H_reconstructed);
-
-% Function to calculate and plot sum rate vs. SNR
-function sum_rate_vs_snr = plot_sum_rate_vs_snr(SNR_dB_range, B_values, H_true, H_reconstructed)
-    % SNR_dB_range: range of SNR values in dB
-    % B_values: different values of B
-    % H_true: ground truth channel matrix (64x160x2000)
-    % H_reconstructed: cell array containing reconstructed channel matrices for each B value
-
-    % Define parameters
-    numAntennas = size(H_true, 1);
-    numSubcarriers = size(H_true, 2);
-    numSamples = size(H_true, 3);
-    sum_rate_vs_snr = zeros(length(SNR_dB_range), length(B_values) + 1);
-    
-    % Iterate over the values of B
-    for b_idx = 1:length(B_values)
-        H_reconstructed_B = H_reconstructed{b_idx};  % Get the channel matrix corresponding to the current B value
-        
-        % Iterate over the values of SNR
-        for snr_idx = 1:length(SNR_dB_range)
-            SNR_dB = SNR_dB_range(snr_idx);
-            SNR_linear = 10^(SNR_dB/10);
-            sum_rate = 0;
-            sum_rate_true = 0;
-
-            % Calculate sum rate for each SNR and B
-            for i = 1:numSamples
-                H_sample = H_reconstructed_B(:,:,i);
-                H_true_sample = H_true(:,:,i);
-
-                % Zero-forcing beamforming
-                W = pinv(H_sample);  % Precoding matrix
-                W_true = pinv(H_true_sample);  % Precoding matrix for true CSI
-
-                % Power allocation with water-filling
-                P_alloc = water_filling(H_sample, SNR_linear);
-                P_alloc_true = water_filling(H_true_sample, SNR_linear);
-
-                % Calculate sum rate
-                rate = calculate_sum_rate(H_sample, W, P_alloc);
-                rate_true = calculate_sum_rate(H_true_sample, W_true, P_alloc_true);
-
-                sum_rate = sum_rate + rate;
-                sum_rate_true = sum_rate_true + rate_true;
-            end
-            sum_rate_vs_snr(snr_idx, b_idx) = sum_rate / numSamples;
-            sum_rate_vs_snr(snr_idx, end) = sum_rate_true / numSamples;  % Sum rate with perfect CSI
-        end
-    end
-    
-    % Plot the results
-    figure;
-    plot(SNR_dB_range, sum_rate_vs_snr(:,1:end-1), '-o', 'LineWidth', 2);
-    hold on;
-    plot(SNR_dB_range, sum_rate_vs_snr(:,end), '--k', 'LineWidth', 2);
-    legend([arrayfun(@(B) sprintf('B = %d', B), B_values, 'UniformOutput', false), {'Perfect CSI'}], 'Location', 'SouthWest');
-    xlabel('SNR (dB)');
-    ylabel('Average Sum Rate (bits/channel use)');
-    title('Average Sum Rate vs. SNR for different values of B');
-    grid on;
+for i = 1:num_tests
+    H_test_i = HDL_test(:, :, i);
+    H_reconst_i = HDL_ori_reconst(:, :, i);
+    sum_rate(i) = calculate_sum_rate(H_reconst_i', P_total);
 end
 
-% Function to calculate the sum rate
-function rate = calculate_sum_rate(H, W, P_alloc)
-    % Calculate the sum rate for given channel, precoding matrix, and power allocation
-    % Input:
-    %   H - channel matrix
-    %   W - precoding matrix
-    %   P_alloc - power allocation vector
-    % Output:
-    %   rate - calculated sum rate
-    
-    rate = 0;
-    num_streams = size(W, 2);
-    for k = 1:num_streams
-        H_k = H * W(:,k);
-        SINR_k = P_alloc(k) * abs(H_k).^2 / (1 + sum(P_alloc .* abs(H * W).^2, 2) - P_alloc(k) * abs(H_k).^2);
-        rate = rate + log2(1 + SINR_k);
+average_sum_rate = mean(sum_rate);
+disp(['Average Sum Rate: ', num2str(average_sum_rate), ' bits/channel use']);
+
+snr_range = -30:5:10; % SNR range in dB
+average_sum_rates = zeros(length(snr_range), 1);
+
+for s = 1:length(snr_range)
+    snr = 10^(snr_range(s) / 10); % Convert SNR from dB to linear scale
+    P_total = snr; % Adjust the total transmit power according to SNR
+
+    sum_rate = zeros(num_tests, 1);
+    for i = 1:num_tests
+        H_test_i = HDL_test(:, :, i);
+        H_reconst_i = HDL_ori_reconst(:, :, i);
+        sum_rate(i) = calculate_sum_rate(H_reconst_i', P_total);
     end
-    rate = sum(rate(:));  % Ensure rate is a scalar
+
+    average_sum_rates(s) = mean(sum_rate);
 end
 
-% Function to perform water-filling power allocation
-function P_alloc = water_filling(H, SNR_linear)
-    % Input:
-    %   H - channel matrix
-    %   SNR_linear - SNR in linear scale
-    % Output:
-    %   P_alloc - allocated power vector
+% Plot the average sum rate vs. SNR
+figure;
+plot(snr_range, average_sum_rates, '-o', 'LineWidth', 2);
+xlabel('SNR (dB)');
+ylabel('Average Sum Rate (bits/channel use)');
+title('Average Sum Rate vs. SNR');
+grid on;
+
+% Helper functions
+function W = calculate_ZF_precoding(H)
+    % H is the channel matrix (Na x Nc)
+    % W is the zero-forcing precoding matrix (Nc x Na)
+    W = (H' / (H * H'))'; % Zero-Forcing Beamforming
+end
+
+function p = water_filling(H, P_total)
+    % H is the channel matrix (Na x Nc)
+    % P_total is the total transmit power
+    % p is the power allocation vector
 
     [U, S, V] = svd(H);
-    singular_values = diag(S);
-    num_channels = length(singular_values);
-    total_power = SNR_linear;
-    
-    % Initialize water level
-    water_level = (total_power + sum(1./(singular_values.^2))) / num_channels;
-    
-    % Calculate power allocation
-    P_alloc = max(water_level - 1./(singular_values.^2), 0);
+    singular_values = diag(S).^2; % Get the squared singular values
+
+    % Water-filling algorithm
+    num_subcarriers = length(singular_values);
+    mu = (P_total + sum(1 ./ singular_values)) / num_subcarriers;
+
+    p = max(0, mu - 1 ./ singular_values);
+    p = p / sum(p) * P_total; % Normalize to ensure the sum of power equals P_total
+end
+
+function rate = calculate_sum_rate(H, P_total)
+    % H is the channel matrix (Na x Nc)
+    % P_total is the total transmit power
+
+    W = calculate_ZF_precoding(H);
+    p = water_filling(H, P_total);
+
+    rate = 0;
+    for i = 1:size(H, 2) % Iterate over each subcarrier
+        H_i = H(:, i); % Channel vector for subcarrier i
+        rate = rate + log2(1 + p(i) * (abs(H_i' * W(:, i)).^2));
+    end
 end
