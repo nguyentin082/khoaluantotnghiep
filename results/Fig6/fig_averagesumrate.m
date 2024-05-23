@@ -2,45 +2,55 @@ clc; clear;
 
 % Load data
 HDL_test = load('HDL_test.mat').HDL_test;
-HDL_ori_reconst = load('HDL_ori_reconst-BTot512-CR16.mat').HDL_ori_reconst;
+
+% Define B values
+B_values = [512, 1024, 1536, 2048];
+
+% Initialize cell array for reconstructed channel matrices
+H_reconstructed = cell(1, length(B_values));
+
+% Load the reconstructed channel matrices for each B value
+H_reconstructed{1} = load('HDL_ori_reconst-BTot512-CR16.mat').HDL_ori_reconst;
+H_reconstructed{2} = load('HDL_ori_reconst-BTot1024-CR16.mat').HDL_ori_reconst;
+H_reconstructed{3} = load('HDL_ori_reconst-BTot1536-CR16.mat').HDL_ori_reconst;
+H_reconstructed{4} = load('HDL_ori_reconst-BTot2048-CR16.mat').HDL_ori_reconst;
 
 P_total = 1; % Total transmit power
 num_tests = size(HDL_test, 3);
-sum_rate = zeros(num_tests, 1);
-
-for i = 1:num_tests
-    H_test_i = HDL_test(:, :, i);
-    H_reconst_i = HDL_ori_reconst(:, :, i);
-    sum_rate(i) = calculate_sum_rate(H_reconst_i', P_total);
-end
-
-average_sum_rate = mean(sum_rate);
-disp(['Average Sum Rate: ', num2str(average_sum_rate), ' bits/channel use']);
-
 snr_range = -30:5:10; % SNR range in dB
-average_sum_rates = zeros(length(snr_range), 1);
 
-for s = 1:length(snr_range)
-    snr = 10^(snr_range(s) / 10); % Convert SNR from dB to linear scale
-    P_total = snr; % Adjust the total transmit power according to SNR
+% Initialize matrix to hold average sum rates for each B and SNR
+average_sum_rates = zeros(length(snr_range), length(B_values));
 
-    sum_rate = zeros(num_tests, 1);
-    for i = 1:num_tests
-        H_test_i = HDL_test(:, :, i);
-        H_reconst_i = HDL_ori_reconst(:, :, i);
-        sum_rate(i) = calculate_sum_rate(H_reconst_i', P_total);
+for b = 1:length(B_values)
+    sum_rates = zeros(num_tests, length(snr_range));
+    H_reconst = H_reconstructed{b};
+
+    for s = 1:length(snr_range)
+        snr = 10^(snr_range(s) / 10); % Convert SNR from dB to linear scale
+        P_total = snr; % Adjust the total transmit power according to SNR
+        
+        for i = 1:num_tests
+            H_test_i = HDL_test(:, :, i);
+            H_reconst_i = H_reconst(:, :, i);
+            sum_rates(i, s) = calculate_sum_rate(H_test_i', P_total); % Use H_test_i for sum rate calculation
+        end
     end
 
-    average_sum_rates(s) = mean(sum_rate);
+    average_sum_rates(:, b) = mean(sum_rates, 1);
 end
 
-% Plot the average sum rate vs. SNR
+% Plot the average sum rate vs. SNR for different values of B
 figure;
-plot(snr_range, average_sum_rates, '-o', 'LineWidth', 2);
-xlabel('SNR (dB)');
-ylabel('Average Sum Rate (bits/channel use)');
-title('Average Sum Rate vs. SNR');
-grid on;
+colors = {'-o', '-s', '-d', '-^'};
+for b = 1:length(B_values)
+    subplot(2, 2, b);
+    plot(snr_range, average_sum_rates(:, b), colors{b}, 'LineWidth', 2);
+    xlabel('SNR (dB)');
+    ylabel('Average Sum Rate (bits/channel use)');
+    title(['Average Sum Rate vs. SNR for B = ', num2str(B_values(b))]);
+    grid on;
+end
 
 % Helper functions
 function W = calculate_ZF_precoding(H)

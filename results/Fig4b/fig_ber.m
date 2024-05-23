@@ -1,7 +1,7 @@
 clear; clc;
 
 % Define SNR range and B values
-SNR_dB_range = -30:5:40;  % Phạm vi SNR theo dB
+SNR_dB_range = -30:5:20;  % Phạm vi SNR theo dB
 B_values = [512, 768, 1024, 1280, 1536, 1792, 2048];  % Các giá trị của B
 
 % Load the ground truth channel matrix
@@ -56,7 +56,10 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
             % Áp dụng CSI vào tín hiệu nhận được
             for i = 1:numSamples
                 received_with_csi(:,:,i) = symbols(:,:,i) .* H_true(:,:,i) + noise(:,:,i);
-                transfered_with_csi(:,:,i) = received_with_csi(:,:,i) ./ H_reconstructed_B(:,:,i);
+            end
+            noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Generate noise here
+            for i = 1:numSamples
+                transfered_with_csi(:,:,i) = (received_with_csi(:,:,i) - noise(:,:,i)) ./ H_reconstructed_B(:,:,i);
             end
             
             % Giải điều chế BPSK
@@ -83,7 +86,10 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
         
         for i = 1:numSamples
             received_with_csi(:,:,i) = symbols(:,:,i) .* H_true(:,:,i) + noise(:,:,i);
-            transfered_with_csi(:,:,i) = received_with_csi(:,:,i) ./ H_true(:,:,i);
+        end
+        noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Use the same noise
+        for i = 1:numSamples
+            transfered_with_csi(:,:,i) = (received_with_csi(:,:,i) - noise(:,:,i)) ./ H_true(:,:,i);
         end
         
         detected_bits = real(transfered_with_csi) > 0;
