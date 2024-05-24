@@ -50,17 +50,9 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
             noise_var = 1 / SNR_linear;
             noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Generate noise here
             
-            received_with_csi = zeros(size(symbols));
-            transfered_with_csi = zeros(size(symbols));
-            
-            % Áp dụng CSI vào tín hiệu nhận được
-            for i = 1:numSamples
-                received_with_csi(:,:,i) = symbols(:,:,i) .* H_true(:,:,i) + noise(:,:,i);
-            end
+            received_with_csi = symbols .* H_true + noise;
             noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Generate noise here
-            for i = 1:numSamples
-                transfered_with_csi(:,:,i) = (received_with_csi(:,:,i) - noise(:,:,i)) ./ H_reconstructed_B(:,:,i);
-            end
+            transfered_with_csi = (received_with_csi - noise) ./ H_reconstructed_B;
             
             % Giải điều chế BPSK
             detected_bits = real(transfered_with_csi) > 0; % Các giá trị lớn hơn 0 sẽ được gán là 1 (tương ứng với bit 1 ban đầu), và các giá trị nhỏ hơn hoặc bằng 0 sẽ được gán là 0 (tương ứng với bit 0 ban đầu).
@@ -81,16 +73,9 @@ function ber_vs_snr = plot_ber_vs_snr(SNR_dB_range, B_values, H_true, H_reconstr
         noise_var = 1 / SNR_linear;
         noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Use the same noise
 
-        received_with_csi = zeros(size(symbols));
-        transfered_with_csi = zeros(size(symbols));
-        
-        for i = 1:numSamples
-            received_with_csi(:,:,i) = symbols(:,:,i) .* H_true(:,:,i) + noise(:,:,i);
-        end
+        received_with_csi = symbols .* H_true + noise;
         noise = sqrt(noise_var/2) * (randn(64, 160, numSamples) + 1i*randn(64, 160, numSamples));  % Use the same noise
-        for i = 1:numSamples
-            transfered_with_csi(:,:,i) = (received_with_csi(:,:,i) - noise(:,:,i)) ./ H_true(:,:,i);
-        end
+        transfered_with_csi = (received_with_csi - noise) ./ H_true;
         
         detected_bits = real(transfered_with_csi) > 0;
         ber_true = mean(detected_bits(:) ~= bits(:));
