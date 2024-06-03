@@ -38,7 +38,10 @@ ylabel('Number of offloaded model parameters');
 title('Average Sum Rate vs. Feedback Length B');
 legend('show');
 grid on;
-ylim([10^5 10^6]);  % Set the y-axis limits
+
+% Đặt các giá trị trên trục y và thiết lập thang đo logarithmic
+set(gca, 'YScale', 'log');
+ylim([10^5 10^7]);
 
 % Chỉ hiển thị các giá trị B trên trục x
 set(gca, 'XTick', B_values);
