@@ -12,3 +12,7 @@ HDL_ori_reconst-BTot1792-CR16.mat
 HDL_ori_reconst-BTot2048-CR16.mat
 
 data.zip
+
+H_train_expanded.mat
+
+results/Fig6/CsiNet/*.mat

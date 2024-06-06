@@ -7,7 +7,7 @@ B_values = [512, 1024, 1536, 2048];
 load('avg_sum_rates.mat'); % Đảm bảo rằng tệp avg_sum_rates.mat ở cùng thư mục với mã này
 
 % Tạo các giá trị SNR
-SNR_values = -10:5:30; % Các giá trị SNR từ -10 đến 30 dB
+SNR_values = -30:5:10; % Các giá trị SNR từ -10 đến 30 dB
 
 % Tạo hình vẽ 2x2 subplot
 figure;

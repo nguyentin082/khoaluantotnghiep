@@ -4,13 +4,13 @@ clear; clc;
 SNR_dB_range = -30:5:20;  % Phạm vi SNR theo dB
 B_values = [512, 768, 1024, 1280, 1536, 1792, 2048];  % Các giá trị của B
 
-% Load the ground truth channel matrix
+% Load the ground truth channel matrix 64x160x2000
 HDL_test = load('HDL_test.mat').HDL_test; % Load file và lưu giá trị vào biến
 
 % Initialize cell array for reconstructed channel matrices
 H_reconstructed = cell(1, length(B_values));
 
-% Load the reconstructed channel matrices for each B value
+% Load the reconstructed channel matrices for each B value 64x160x2000
 H_reconstructed{1} = load('HDL_ori_reconst-BTot512-CR16.mat').HDL_ori_reconst;
 H_reconstructed{2} = load('HDL_ori_reconst-BTot768-CR16.mat').HDL_ori_reconst;
 H_reconstructed{3} = load('HDL_ori_reconst-BTot1024-CR16.mat').HDL_ori_reconst;
