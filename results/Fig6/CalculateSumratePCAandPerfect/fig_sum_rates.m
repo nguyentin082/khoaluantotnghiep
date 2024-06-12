@@ -18,7 +18,7 @@ for i = 1:4
     plot(SNR_values, avg_sum_rates(i, :), 'r', 'LineWidth', 2); % B value
     title(['B = ', num2str(B_values(i))]);
     xlabel('SNR (dB)');
-    ylabel('Average Sum Rate');
+    ylabel('Average Sum Rate (bits/channel use)');
     legend('Perfect Channel', ['PCA'], 'Location', 'Best');
     grid on;
     hold off;

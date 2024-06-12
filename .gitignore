@@ -15,4 +15,10 @@ data.zip
 
 H_train_expanded.mat
 
-results/Fig6/CsiNet/*.mat
+results/Fig6/CalculateSumrateCsiNet/*.mat
+
+results/Fig6/*.mat
+results/Fig6/CsiNet
+results/Fig6/ExpandDataTo40000
+
+results/Fig9/*.mat
